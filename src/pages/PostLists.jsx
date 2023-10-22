@@ -1,10 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
-import AddPost from '../components/AddPost';
-import { fetchPosts } from '../api/posts';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { deletePost, fetchPosts } from '../api/posts';
+import AddPost from '../components/AddPost';
 
 const PostLists = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const {
     isLoading,
@@ -15,23 +16,26 @@ const PostLists = () => {
     queryKey: ['posts'],
     queryFn: fetchPosts,
   });
-  if (isLoading) return 'Loading...';
+
+  const deletePostMutation = useMutation({
+    mutationFn: deletePost,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+
+  const handleDelete = (id) => {
+    deletePostMutation.mutate(id);
+  };
+
+  if (isLoading) return 'loading...';
   if (isError) return `Error: ${error.message}`;
 
   return (
     <div>
       <AddPost />
       {posts.map((post) => (
-        <div
-          key={post.id}
-          style={{
-            border: '1px solid black',
-            marginTop: '10px',
-            paddingLeft: '10px',
-            paddingBottom: '10px',
-            backgroundColor: 'lightgray',
-          }}
-        >
+        <div key={post.id} style={{ background: '#777' }}>
           <h4
             style={{ cursor: 'pointer' }}
             onClick={() => navigate(`/post/${post.id}`)}
@@ -41,7 +45,7 @@ const PostLists = () => {
           <button onClick={() => navigate(`/post/${post.id}/edit`)}>
             Edit
           </button>
-          <button>Delete</button>
+          <button onClick={() => handleDelete(post.id)}>Delete</button>
         </div>
       ))}
     </div>
